@@ -1,8 +1,145 @@
 @import "tailwindcss";
 
-html, body {
-  scroll-behavior: smooth;
-  background-color: #0f0f10;
-  color: white;
-  font-family: 'Inter', sans-serif;
+:root {
+  --radius: 12px;
+  /* defaults will be overridden by data-theme below */
+  --color-primary: #6C63FF;
+  --color-secondary: #A78BFA;
+  --color-accent: #E0E7FF;
+  --color-background: #1F1F25;
+  --color-card: #23232b;
+  --color-muted: #9CA3AF;
+  --color-foreground: #F9FAFB;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --card-border: rgba(255, 255, 255, 0.08);
 }
+
+/* Theme: Dark (default) */
+html[data-theme='dark'] {
+  --color-primary: #6C63FF;
+  --color-secondary: #A78BFA;
+  --color-accent: #E0E7FF;
+  --color-background: #1F1F25;
+  --color-card: #23232b;
+  --color-muted: #9CA3AF;
+  --color-foreground: #F9FAFB;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --card-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Theme: Light */
+html[data-theme='light'] {
+  --color-primary: #6C63FF;
+  --color-secondary: #9B8AFB;
+  --color-accent: #4F46E5;
+  --color-background: #F8FAFC; /* slate-50 */
+  --color-card: #FFFFFF;
+  --color-muted: #6B7280; /* gray-500 */
+  --color-foreground: #111827; /* gray-900 */
+  --glass-bg: rgba(0, 0, 0, 0.04);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --card-border: rgba(0, 0, 0, 0.06);
+}
+
+/* Theme: Paper (reciclado, tonos café) */
+html[data-theme='paper'] {
+  --color-primary: #8B5E34; /* coffee */
+  --color-secondary: #C19A6B; /* tan */
+  --color-accent: #A47148; /* accent brown */
+  --color-background: #EFE9DD; /* recycled paper */
+  --color-card: #F7F1E3; /* lighter card */
+  --color-muted: #6B5E52; /* muted brown */
+  --color-foreground: #3B2F2F; /* dark brown text */
+  --glass-bg: rgba(139, 94, 52, 0.08);
+  --glass-border: rgba(139, 94, 52, 0.18);
+  --card-border: rgba(139, 94, 52, 0.2);
+}
+
+/* Subtle paper texture (no external assets) */
+html[data-theme='paper'] body {
+  background-image:
+    radial-gradient(rgba(0,0,0,0.025) 1px, transparent 1px),
+    radial-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+    repeating-linear-gradient(90deg, rgba(139, 94, 52, 0.03), rgba(139, 94, 52, 0.03) 2px, transparent 2px, transparent 6px);
+  background-size: 24px 24px, 32px 32px, 12px 12px;
+  background-position: 0 0, 12px 12px, 0 0;
+}
+
+/* subtle texture overlay for paper theme (no external assets) */
+html[data-theme='paper'] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(0,0,0,0.02), rgba(0,0,0,0.02));
+  background-size: 3px 3px, 100% 100%;
+  mix-blend-mode: multiply;
+}
+
+html,
+body {
+  scroll-behavior: smooth;
+}
+
+/* Dark mode baseline */
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
+/* Helper classes (non-Tailwind) */
+.glass {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+}
+
+.card {
+  border-radius: 12px;
+  background-color: var(--color-card);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  color: white;
+  background-color: var(--color-primary);
+  transition: background-color 200ms ease;
+}
+.btn-primary:hover {
+  background-color: var(--color-secondary);
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Theme-aware helpers */
+.text-muted { color: var(--color-muted); }
+.icon-muted { color: var(--color-muted); }
+.bg-surface { background-color: var(--color-card); }
+.border-soft { border-color: var(--card-border); }
+.hover-glass:hover { background-color: var(--glass-bg); }
+
+/* Inputs placeholder color */
+input::placeholder, textarea::placeholder { color: var(--color-muted); }
