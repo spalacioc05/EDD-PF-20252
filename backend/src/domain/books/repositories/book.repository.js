@@ -1,0 +1,1 @@
+// Domain repository interface for Books (abstraction)

@@ -1,0 +1,1 @@
+// Domain repository interface for Users (abstraction)

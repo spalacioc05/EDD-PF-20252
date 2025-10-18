@@ -1,0 +1,1 @@
+// placeholder: providers registry (repositories, services, adapters)
