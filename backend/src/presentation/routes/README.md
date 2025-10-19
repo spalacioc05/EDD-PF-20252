@@ -1,0 +1,1 @@
+Rutas por dominio (placeholders)

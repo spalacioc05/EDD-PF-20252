@@ -1,0 +1,1 @@
+// Supabase implementation placeholder: GenerosVozRepository

@@ -1,0 +1,1 @@
+Mappers de autores (placeholders)
