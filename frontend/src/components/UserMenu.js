@@ -1,13 +1,27 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, LogOut, Pencil, ChevronDown } from "lucide-react";
 import Modal from "@/components/Modal";
 import { tbl_Usuarios } from "@/data/mockData";
 
 export default function UserMenu() {
-  const user = tbl_Usuarios[0];
+  const router = useRouter();
+  const [user, setUser] = useState(tbl_Usuarios[0]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("loom:user");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.correo) setUser((u) => ({ ...u, ...parsed }));
+      } else {
+        const correo = localStorage.getItem("loom:user_email");
+        if (correo) setUser((u) => ({ ...u, correo }));
+      }
+    } catch {}
+  }, []);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const ref = useRef(null);
@@ -57,9 +71,29 @@ export default function UserMenu() {
               <button className="rounded-lg px-3 py-2 hover:bg-white/5 flex items-center gap-2 text-left" onClick={() => { setEditOpen(true); setOpen(false); }} role="menuitem">
                 <Pencil className="h-4 w-4" /> Editar perfil
               </button>
-              <Link href="/login" className="rounded-lg px-3 py-2 hover:bg-white/5 flex items-center gap-2 text-red-300" role="menuitem">
+              <button
+                className="rounded-lg px-3 py-2 hover:bg-white/5 flex items-center gap-2 text-red-300 text-left"
+                role="menuitem"
+                onClick={async () => {
+                  setOpen(false);
+                  try {
+                    const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+                    const token = typeof window !== 'undefined' ? localStorage.getItem("loom:token") : null;
+                    await fetch(`${api}/auth/logout`, {
+                      method: "POST",
+                      headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    });
+                  } catch {}
+                  try {
+                    localStorage.removeItem("loom:token");
+                    localStorage.removeItem("loom:user");
+                    localStorage.removeItem("loom:user_email");
+                  } catch {}
+                  router.push('/login');
+                }}
+              >
                 <LogOut className="h-4 w-4" /> Cerrar sesión
-              </Link>
+              </button>
             </div>
           </motion.div>
         )}

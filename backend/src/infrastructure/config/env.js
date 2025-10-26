@@ -11,6 +11,9 @@ export const env = {
 	// Postgres
 	databaseUrl: process.env.DATABASE_URL,
 
+	// Auth
+	jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
+
 	// Storage buckets
 	bucketPortadas: process.env.BUCKET_PORTADAS || 'portadas_libros',
 	bucketArchivos: process.env.BUCKET_ARCHIVOS || 'archivos_libros',

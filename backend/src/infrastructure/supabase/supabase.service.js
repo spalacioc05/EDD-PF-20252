@@ -6,19 +6,24 @@ import { env } from '../config/env';
 export class SupabaseService {
   constructor() {
     this.logger = new Logger('SupabaseService');
-    if (env.supabaseUrl && env.supabaseAnonKey) {
-      this.client = createClient(env.supabaseUrl, env.supabaseAnonKey);
+    // Read from process.env at runtime to ensure values exist in test/bootstrap
+    const SUPABASE_URL = process.env.SUPABASE_URL || env.supabaseUrl;
+    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || env.supabaseAnonKey;
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || env.supabaseServiceRoleKey;
+
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      this.client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
-    if (env.supabaseUrl && env.supabaseServiceRoleKey) {
-      this.admin = createClient(env.supabaseUrl, env.supabaseServiceRoleKey, {
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      this.admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
     }
     this.requiredBuckets = [
-      env.bucketPortadas,
-      env.bucketArchivos,
-      env.bucketAudios,
-      env.bucketFotos,
+      process.env.BUCKET_PORTADAS || env.bucketPortadas,
+      process.env.BUCKET_ARCHIVOS || env.bucketArchivos,
+      process.env.BUCKET_AUDIOS || env.bucketAudios,
+      process.env.BUCKET_FOTOS || env.bucketFotos,
     ];
   }
 
@@ -38,6 +43,13 @@ export class SupabaseService {
     for (const name of this.requiredBuckets) {
       if (!name) continue;
       if (existing.has(name)) {
+        // try to ensure it's public
+        try {
+          await this.admin.storage.updateBucket(name, { public: true });
+        } catch (e) {
+          // ignore if update not allowed; policies may already exist
+          this.logger.warn(`Bucket ${name} exists; could not update public flag: ${e?.message}`);
+        }
         ensured.push({ name, existed: true });
         continue;
       }

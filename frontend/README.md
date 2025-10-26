@@ -94,3 +94,8 @@ No es necesario instalarlas manualmente una por una: `npm install` leerá `packa
 - `src/app/(main)/*`: páginas principales (Home, Search, Profile, Upload, Book Detail)
 - `src/components/*`: componentes (Header, NavBar, Sidebar, BookCard, VoiceSelector, etc.)
 - `src/data/mockData.js`: datos simulados alineados al esquema SQL proporcionado
+
+## Login simplificado
+
+- La pantalla `src/app/login/page.js` ahora permite ingresar únicamente el correo electrónico y presionar "Entrar".
+- Se realiza una validación básica del formato del correo y se guarda de forma opcional en `localStorage` bajo la clave `loom:user_email` para simular sesión y luego redirigir al inicio.

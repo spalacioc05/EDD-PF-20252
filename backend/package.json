@@ -32,7 +32,8 @@
     "multer": "^2.0.2",
     "nestjs-form-data": "^1.9.93",
     "pdf-parse": "^2.4.3",
-    "pg": "^8.16.3",
+  "pg": "^8.16.3",
+  "jsonwebtoken": "^9.0.2",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.2",
     "sharp": "^0.34.4"
