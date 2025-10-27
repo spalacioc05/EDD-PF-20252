@@ -99,3 +99,10 @@ No es necesario instalarlas manualmente una por una: `npm install` leerá `packa
 
 - La pantalla `src/app/login/page.js` ahora permite ingresar únicamente el correo electrónico y presionar "Entrar".
 - Se realiza una validación básica del formato del correo y se guarda de forma opcional en `localStorage` bajo la clave `loom:user_email` para simular sesión y luego redirigir al inicio.
+
+## Fotos de perfil (frontend)
+
+- En `/profile` se muestra y edita el perfil. Dentro del modal "Editar perfil":
+	- Puedes seleccionar una foto nueva con vista previa antes de subir.
+	- Se muestra una galería (historial) de fotos anteriores del usuario; al hacer click en alguna, se establece como actual inmediatamente.
+- La foto actual se refleja tanto en la tarjeta de perfil como en el avatar de la esquina superior derecha (menú de usuario). Cuando la foto cambia, se actualiza `localStorage` y se emite un evento `loom:user-updated` para refrescar el avatar.

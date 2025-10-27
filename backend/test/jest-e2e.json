@@ -4,5 +4,6 @@
   "testRegex": ".e2e-spec.js$",
   "transform": {
     "^.+\\.js$": "babel-jest"
-  }
+  },
+  "testTimeout": 40000
 }

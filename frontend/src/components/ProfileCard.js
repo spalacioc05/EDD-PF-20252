@@ -3,7 +3,7 @@ import { Calendar, Mail, Phone, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function ProfileCard({ user, onEdit }) {
-  const foto = typeof user.foto_perfil === 'string' && user.foto_perfil.startsWith('http') ? user.foto_perfil : '';
+  const foto = typeof user.foto_perfil === 'string' && user.foto_perfil ? user.foto_perfil : '';
   const initials = (user?.nombre || user?.correo || 'U').trim().split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase();
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card p-4 flex items-center gap-4">

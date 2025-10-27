@@ -28,6 +28,10 @@ export class SupabaseService {
   }
 
   async ensureBuckets() {
+    // Avoid repeated expensive calls during tests or multiple module inits
+    if (global.__SUPA_BUCKETS_ENSURED__) {
+      return { ok: true, ensured: [], skipped: true };
+    }
     if (!this.admin) {
       this.logger.warn('Supabase admin client not configured; skipping bucket check');
       return { ok: false, ensured: [], error: 'missing_admin_client' };
@@ -62,6 +66,7 @@ export class SupabaseService {
       }
       ensured.push({ name, existed: false });
     }
+    global.__SUPA_BUCKETS_ENSURED__ = true;
     return { ok: true, ensured };
   }
 

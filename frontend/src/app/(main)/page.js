@@ -1,31 +1,73 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Headphones, Sparkles } from "lucide-react";
 import BookCard from "@/components/BookCard";
-import { tbl_Libros, tbl_Libros_X_Usuarios, tbl_Generos, getGenerosByLibroId } from "@/data/mockData";
 import Link from "next/link";
+import { getApiUrl, getToken } from "@/lib/auth";
 
 export default function HomePage() {
   const [activeGenre, setActiveGenre] = useState(null);
   const [q, setQ] = useState("");
-  const continuar = tbl_Libros_X_Usuarios.slice(0, 3).map((lu) => ({
-    libro: tbl_Libros.find((b) => b.id_libro === lu.id_libro),
-    progreso: (Number(lu.progreso) || 0) / 100,
-  }));
+  const [genres, setGenres] = useState([]);
+  const [books, setBooks] = useState([]);
+  const [loadingBooks, setLoadingBooks] = useState(false);
+  const [reading, setReading] = useState([]);
 
-  const categorias = [
-    { nombre: "Romance", id: 1 },
-    { nombre: "Ciencia Ficción", id: 2 },
-    { nombre: "Misterio", id: 3 },
-    { nombre: "Fantasía", id: 4 },
-  ];
+  // Load genres and initial books
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const api = getApiUrl();
+        const g = await fetch(`${api}/genres`);
+        const gj = await g.json().catch(() => ({ genres: [] }));
+        if (!cancelled) setGenres(Array.isArray(gj.genres) ? gj.genres : []);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  const base = activeGenre
-    ? tbl_Libros.filter((b)=> getGenerosByLibroId(b.id_libro).some((g)=> g.id_genero === activeGenre))
-    : tbl_Libros;
+  // Load books when genre changes
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingBooks(true);
+        const api = getApiUrl();
+        const url = new URL(`${api}/books`);
+        if (activeGenre != null) url.searchParams.set('genreId', String(activeGenre));
+        const res = await fetch(url.toString());
+        const data = await res.json().catch(() => ({ books: [] }));
+        if (!cancelled) setBooks(Array.isArray(data.books) ? data.books : []);
+      } catch {
+        if (!cancelled) setBooks([]);
+      } finally {
+        if (!cancelled) setLoadingBooks(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeGenre]);
+
+  // Load current user's reading list
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const api = getApiUrl();
+        const token = getToken();
+        if (!token) return;
+        const res = await fetch(`${api}/users/me/reading?limit=12`, { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json().catch(() => ({ items: [] }));
+        if (!cancelled) setReading(Array.isArray(data.items) ? data.items : []);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const qLower = q.trim().toLowerCase();
-  const filtrados = base.filter((b) => !qLower || b.titulo.toLowerCase().includes(qLower));
+  const base = books;
+  const filtrados = base.filter((b) => !qLower || (b.titulo || '').toLowerCase().includes(qLower));
 
   return (
     <div className="space-y-10">
@@ -77,9 +119,11 @@ export default function HomePage() {
       <section>
         <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-xl font-semibold flex items-center gap-2"><Headphones className="h-5 w-5" />Continuar leyendo</motion.h2>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {continuar.map(({ libro, progreso }) => (
-            <BookCard key={libro.id_libro} book={libro} progreso={progreso} />
-          ))}
+          {reading.map((it) => {
+            const libro = it.tbl_libros || it.libro || { id_libro: it.id_libro, titulo: 'Libro', portada: null };
+            const progreso = Number(it.progreso || 0);
+            return <BookCard key={libro.id_libro} book={libro} progreso={progreso} />;
+          })}
         </div>
       </section>
 
@@ -91,14 +135,18 @@ export default function HomePage() {
           <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-xl font-semibold">Explora por género</motion.h2>
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={()=>setActiveGenre(null)} className={`px-3 py-1.5 rounded-full text-sm ${activeGenre===null?"bg-[color:var(--color-primary)] text-white":"hover-glass"}`}>Todos</button>
-            {tbl_Generos.map((g)=> (
+            {genres.map((g)=> (
               <button key={g.id_genero} onClick={()=>setActiveGenre(g.id_genero)} className={`px-3 py-1.5 rounded-full text-sm ${activeGenre===g.id_genero?"bg-[color:var(--color-primary)] text-white":"hover-glass"}`}>{g.nombre}</button>
             ))}
           </div>
           <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtrados.map((libro)=> (
-              <BookCard key={libro.id_libro} book={libro} progreso={0} />
-            ))}
+            {loadingBooks ? (
+              <div className="col-span-full text-center text-gray-400">Cargando libros…</div>
+            ) : (
+              filtrados.map((libro)=> (
+                <BookCard key={libro.id_libro} book={libro} progreso={0} />
+              ))
+            )}
           </div>
         </section>
       )}

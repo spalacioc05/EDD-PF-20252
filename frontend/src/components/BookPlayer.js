@@ -6,8 +6,9 @@ import VoiceSelector from "@/components/VoiceSelector";
 
 export default function BookPlayer({ playbackRates = [], voices = [], defaultRateId, defaultVoiceId, defaultProgress = 0.32, fragment = "" }) {
   const [playing, setPlaying] = useState(false);
-  const [rate, setRate] = useState(defaultRateId ?? (playbackRates[0]?.id_playbackrate || 1));
-  const [voice, setVoice] = useState(defaultVoiceId ?? (voices[0]?.id_voz || 1));
+  const initialRateId = defaultRateId ?? (playbackRates[0]?.id_playbackrate ?? playbackRates[0]?.id ?? 1);
+  const [rate, setRate] = useState(initialRateId);
+  const [voice, setVoice] = useState(defaultVoiceId ?? (voices[0]?.id_voz ?? voices[0]?.id ?? 1));
   const [progress, setProgress] = useState(defaultProgress);
   const [wordIndex, setWordIndex] = useState(0);
   const words = useMemo(() => (fragment || "Este es un ejemplo de lectura simulada.").split(/\s+/), [fragment]);
@@ -20,7 +21,10 @@ export default function BookPlayer({ playbackRates = [], voices = [], defaultRat
       return;
     }
     const baseMs = 450; // duración base por palabra
-  const selectedRate = playbackRates.find((r) => r.id_playbackrate === rate)?.velocidad || 1.0;
+    const selectedRate = (() => {
+      const found = playbackRates.find((r) => (r.id_playbackrate ?? r.id) === rate);
+      return found?.velocidad ?? found?.value ?? 1.0;
+    })();
     const interval = Math.max(120, baseMs / selectedRate);
     timer.current = setInterval(() => {
       setWordIndex((i) => {
@@ -46,9 +50,11 @@ export default function BookPlayer({ playbackRates = [], voices = [], defaultRat
         <div className="ml-auto flex items-center gap-2">
           <Volume2 className="h-5 w-5 text-gray-300" />
           <select value={rate} onChange={(e)=>setRate(Number(e.target.value))} className="rounded-lg bg-white/5 px-2 py-1 text-sm">
-            {playbackRates.map((r)=> (
-              <option key={r.id_playbackrate} value={r.id_playbackrate}>{r.velocidad}x</option>
-            ))}
+            {playbackRates.map((r, idx)=> {
+              const rid = r.id_playbackrate ?? r.id ?? idx;
+              const label = (r.velocidad ?? r.value ?? 1) + 'x';
+              return (<option key={rid} value={rid}>{label}</option>);
+            })}
           </select>
         </div>
       </div>

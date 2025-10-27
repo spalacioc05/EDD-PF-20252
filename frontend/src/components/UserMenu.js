@@ -11,16 +11,22 @@ export default function UserMenu() {
   const router = useRouter();
   const [user, setUser] = useState(tbl_Usuarios[0]);
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("loom:user");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.correo) setUser((u) => ({ ...u, ...parsed }));
-      } else {
-        const correo = localStorage.getItem("loom:user_email");
-        if (correo) setUser((u) => ({ ...u, correo }));
-      }
-    } catch {}
+    const load = () => {
+      try {
+        const raw = localStorage.getItem("loom:user");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.correo) setUser((u) => ({ ...u, ...parsed }));
+        } else {
+          const correo = localStorage.getItem("loom:user_email");
+          if (correo) setUser((u) => ({ ...u, correo }));
+        }
+      } catch {}
+    };
+    load();
+    const onUserUpdated = () => load();
+    window.addEventListener('loom:user-updated', onUserUpdated);
+    return () => window.removeEventListener('loom:user-updated', onUserUpdated);
   }, []);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -42,7 +48,14 @@ export default function UserMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <div className="h-8 w-8 rounded-full bg-[url('/media/profile1.jpg')] bg-cover bg-center border border-white/10" />
+        {user?.foto_perfil ? (
+          <div
+            className="h-8 w-8 rounded-full bg-cover bg-center border border-white/10"
+            style={{ backgroundImage: `url('${user.foto_perfil}')` }}
+          />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-[url('/media/profile1.jpg')] bg-cover bg-center border border-white/10" />
+        )}
         <ChevronDown className="h-4 w-4 text-gray-300 hidden md:block" />
       </button>
 
@@ -57,7 +70,14 @@ export default function UserMenu() {
             role="menu"
           >
             <div className="flex items-center gap-3 p-2">
-              <div className="h-10 w-10 rounded-full bg-[url('/media/profile1.jpg')] bg-cover bg-center border border-white/10" />
+              {user?.foto_perfil ? (
+                <div
+                  className="h-10 w-10 rounded-full bg-cover bg-center border border-white/10"
+                  style={{ backgroundImage: `url('${user.foto_perfil}')` }}
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-[url('/media/profile1.jpg')] bg-cover bg-center border border-white/10" />
+              )}
               <div>
                 <p className="text-sm font-medium leading-5">{user.nombre}</p>
                 <p className="text-xs text-gray-400 leading-4">{user.correo}</p>

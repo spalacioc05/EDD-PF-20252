@@ -14,6 +14,8 @@ export default function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editNombre, setEditNombre] = useState("");
+  const [photos, setPhotos] = useState([]);
+  const [preview, setPreview] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -28,6 +30,12 @@ export default function ProfilePage() {
         const data = await res.json();
         setUser(data.user);
         setEditNombre(data.user?.nombre || "");
+        // cargar historial de fotos
+        const ph = await fetch(`${getApiUrl()}/users/me/photos`, { headers: { Authorization: `Bearer ${token}` } });
+        if (ph.ok) {
+          const list = await ph.json();
+          setPhotos(Array.isArray(list.files) ? list.files : []);
+        }
       } catch (e) {
         // fallback: redirect to login
         router.replace('/login');
@@ -70,23 +78,89 @@ export default function ProfilePage() {
           </div>
           <div className="grid grid-cols-1 gap-2">
             <label className="text-sm text-gray-300">Foto de perfil</label>
-            <input ref={fileInputRef} type="file" accept="image/*" className="rounded-lg bg-white/5 px-3 py-2" />
-            <button className="rounded-lg bg-white/10 px-3 py-2 w-fit" onClick={async ()=>{
-              if (!fileInputRef.current?.files?.[0]) return;
-              const token = localStorage.getItem('loom:token');
-              const fd = new FormData();
-              fd.append('file', fileInputRef.current.files[0]);
-              const res = await fetch(`${getApiUrl()}/users/me/photo`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
-              const data = await res.json();
-              if (res.ok) {
-                setUser(data.user);
-                localStorage.setItem('loom:user', JSON.stringify(data.user));
-                // limpiar input para evitar re-subir sin cambios
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              } else {
-                alert(data?.message || 'No se pudo subir la foto');
-              }
-            }}>Subir nueva foto</button>
+            {preview ? (
+              <div className="flex items-center gap-3">
+                <img src={preview} alt="Vista previa" className="h-16 w-16 rounded-full object-cover border border-white/10" />
+                <button className="rounded-lg px-3 py-2 bg-white/10" onClick={() => setPreview(null)}>Quitar</button>
+              </div>
+            ) : null}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="rounded-lg bg-white/5 px-3 py-2"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  const url = URL.createObjectURL(f);
+                  setPreview(url);
+                } else {
+                  setPreview(null);
+                }
+              }}
+            />
+            <div className="flex gap-2">
+              <button
+                className="rounded-lg bg-white/10 px-3 py-2"
+                onClick={async () => {
+                  try {
+                    if (!fileInputRef.current?.files?.[0]) return;
+                    const token = localStorage.getItem('loom:token');
+                    const fd = new FormData();
+                    fd.append('file', fileInputRef.current.files[0]);
+                    const res = await fetch(`${getApiUrl()}/users/me/photo`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+                    let data = null;
+                    try { data = await res.json(); } catch { /* puede venir HTML si hay error inesperado */ }
+                    if (res.ok) {
+                      setUser(data.user);
+                      localStorage.setItem('loom:user', JSON.stringify(data.user));
+                      window.dispatchEvent(new Event('loom:user-updated'));
+                      // actualizar galería
+                      setPhotos((prev) => [{ name: (data.path||'').split('/').pop(), path: data.path, url: data.url }, ...prev]);
+                      // limpiar input y preview
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                      if (preview) { URL.revokeObjectURL(preview); setPreview(null); }
+                    } else {
+                      const msg = (data && data.message) ? data.message : `Error ${res.status}`;
+                      alert(msg || 'No se pudo subir la foto');
+                    }
+                  } catch (e) {
+                    alert('No se pudo subir la foto');
+                  }
+                }}
+              >Subir nueva foto</button>
+            </div>
+            {photos?.length ? (
+              <div className="mt-2">
+                <div className="text-sm text-gray-300 mb-2">Historial de fotos</div>
+                <div className="grid grid-cols-5 gap-2">
+                  {photos.map((p) => (
+                    <button key={p.path || p.url}
+                      className={`relative rounded-lg overflow-hidden border ${user?.foto_perfil && (user.foto_perfil === p.url) ? 'border-indigo-400' : 'border-white/10'}`}
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem('loom:token');
+                          const body = p.path && !p.url?.startsWith('http') ? { path: p.path } : { path: (p.path || new URL(p.url).pathname.substring(1)) };
+                          const res = await fetch(`${getApiUrl()}/users/me/photo`, { method: 'PATCH', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setUser(data.user);
+                            localStorage.setItem('loom:user', JSON.stringify(data.user));
+                            window.dispatchEvent(new Event('loom:user-updated'));
+                          } else {
+                            alert(data?.message || 'No se pudo actualizar la foto');
+                          }
+                        } catch (e) {
+                          alert('Error al actualizar la foto');
+                        }
+                      }}
+                    >
+                      <img src={p.url} alt={p.name} className="h-16 w-16 object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-300">Estado: {Number(user.id_estado) === 1 ? 'Activo' : 'Inactivo'}</div>

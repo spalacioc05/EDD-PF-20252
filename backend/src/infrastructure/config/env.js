@@ -19,6 +19,9 @@ export const env = {
 	bucketArchivos: process.env.BUCKET_ARCHIVOS || 'archivos_libros',
 	bucketAudios: process.env.BUCKET_AUDIOS || 'audios_libros',
 	bucketFotos: process.env.BUCKET_FOTOS || 'fotos_perfil',
+
+	// Books analysis
+	wordsPerPageFallback: parseInt(process.env.WORDS_PER_PAGE_FALLBACK || '300', 10),
 };
 
 export function validateEnv() {

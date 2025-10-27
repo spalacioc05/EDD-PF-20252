@@ -92,4 +92,38 @@ describe('Users (e2e)', () => {
     expect(res.body).toHaveProperty('url');
     expect(res.body.user).toHaveProperty('foto_perfil');
   });
+
+  it('GET /users/me/photos lists history and PATCH /users/me/photo selects existing', async () => {
+    const token = await loginOk();
+    const me = await request(server).get('/users/me').set('Authorization', `Bearer ${token}`);
+    expect(me.status).toBe(200);
+    const id = me.body.user.id_usuario;
+
+    const list0 = await request(server).get('/users/me/photos').set('Authorization', `Bearer ${token}`);
+    expect(list0.status).toBe(200);
+    const initialCount = Array.isArray(list0.body.files) ? list0.body.files.length : 0;
+
+    const buf = Buffer.from('fake image for test2');
+    const up = await request(server)
+      .post('/users/me/photo')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', buf, { filename: 'avatar2.jpg', contentType: 'image/jpeg' });
+    expect(up.status).toBe(200);
+    expect(up.body).toHaveProperty('path');
+    expect(up.body.path.startsWith(`user-${id}/`)).toBe(true);
+
+    const list1 = await request(server).get('/users/me/photos').set('Authorization', `Bearer ${token}`);
+    expect(list1.status).toBe(200);
+    const files = list1.body.files || [];
+    expect(files.length).toBeGreaterThanOrEqual(initialCount + 1);
+    const newest = files[0];
+    expect(newest.path.startsWith(`user-${id}/`)).toBe(true);
+
+    const sel = await request(server)
+      .patch('/users/me/photo')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ path: newest.path });
+    expect(sel.status).toBe(200);
+    expect(sel.body.user).toHaveProperty('foto_perfil');
+  });
 });

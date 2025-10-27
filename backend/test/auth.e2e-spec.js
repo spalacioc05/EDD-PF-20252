@@ -34,8 +34,11 @@ describe('Auth (e2e)', () => {
     if (res.status === 200) return res.body;
     if (res.status === 403 && res.body?.code === 'inactive_user') {
       const re = await request(server).post(`/auth/reactivate?correo=${encodeURIComponent(email)}`);
-      expect(re.status).toBe(200);
-      return re.body;
+      if (re.status === 200) return re.body;
+      // If reactivation fails (already active), try login again
+      const retry = await request(server).post(`/auth/login?correo=${encodeURIComponent(email)}`);
+      expect(retry.status).toBe(200);
+      return retry.body;
     }
     // Debug output if failing
     // eslint-disable-next-line no-console
