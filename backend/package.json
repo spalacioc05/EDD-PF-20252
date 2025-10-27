@@ -12,7 +12,8 @@
     "test": "jest",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "analyze:one": "node scripts/analyze-one.js"
+    "analyze:one": "node scripts/analyze-one.js",
+    "tts:gen": "node scripts/generate-audio.js"
   },
   "dependencies": {
     "@google-cloud/text-to-speech": "^6.3.1",
@@ -38,7 +39,8 @@
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.2",
     "sharp": "^0.34.4",
-    "pdfjs-dist": "^4.8.69"
+    "pdfjs-dist": "^4.8.69",
+    "edge-tts": "^1.0.1"
   },
   "devDependencies": {
     "babel-jest": "30.2.0",

@@ -19,11 +19,12 @@ import { StartReadingUseCase } from './application/books/use-cases/start-reading
 import { UpdateReadingUseCase } from './application/books/use-cases/update-reading.use-case';
 import { GetBookDetailUseCase } from './application/books/use-cases/get-book-detail.use-case';
 import { ListVoicesForBookUseCase } from './application/books/use-cases/list-voices-for-book.use-case';
+import { GenerateBookAudioUseCase } from './application/books/use-cases/generate-book-audio.use-case';
 
 @Injectable()
-@Dependencies(SupabaseService, HttpAdapterHost, LoginUseCase, LogoutUseCase, GetMeUseCase, ReactivateUseCase, UpdateProfileUseCase, UploadPhotoUseCase, ListPhotosUseCase, SetPhotoUseCase, AnalyzeBooksUseCase, AnalyzeMissingBooksUseCase, 'LibrosRepository', ListGenresUseCase, ListBooksUseCase, ListUserReadingUseCase, StartReadingUseCase, UpdateReadingUseCase, GetBookDetailUseCase, ListVoicesForBookUseCase)
+@Dependencies(SupabaseService, HttpAdapterHost, LoginUseCase, LogoutUseCase, GetMeUseCase, ReactivateUseCase, UpdateProfileUseCase, UploadPhotoUseCase, ListPhotosUseCase, SetPhotoUseCase, AnalyzeBooksUseCase, AnalyzeMissingBooksUseCase, 'LibrosRepository', ListGenresUseCase, ListBooksUseCase, ListUserReadingUseCase, StartReadingUseCase, UpdateReadingUseCase, GetBookDetailUseCase, ListVoicesForBookUseCase, GenerateBookAudioUseCase)
 export class BootstrapService {
-  constructor(supabaseService, httpAdapterHost, loginUseCase, logoutUseCase, getMeUseCase, reactivateUseCase, updateProfileUseCase, uploadPhotoUseCase, listPhotosUseCase, setPhotoUseCase, analyzeBooksUseCase, analyzeMissingBooksUseCase, librosRepository, listGenresUseCase, listBooksUseCase, listUserReadingUseCase, startReadingUseCase, updateReadingUseCase, getBookDetailUseCase, listVoicesForBookUseCase) {
+  constructor(supabaseService, httpAdapterHost, loginUseCase, logoutUseCase, getMeUseCase, reactivateUseCase, updateProfileUseCase, uploadPhotoUseCase, listPhotosUseCase, setPhotoUseCase, analyzeBooksUseCase, analyzeMissingBooksUseCase, librosRepository, listGenresUseCase, listBooksUseCase, listUserReadingUseCase, startReadingUseCase, updateReadingUseCase, getBookDetailUseCase, listVoicesForBookUseCase, generateBookAudioUseCase) {
     this.supabaseService = supabaseService;
     this.httpAdapterHost = httpAdapterHost;
     this.loginUseCase = loginUseCase;
@@ -44,6 +45,7 @@ export class BootstrapService {
     this.updateReadingUseCase = updateReadingUseCase;
     this.getBookDetailUseCase = getBookDetailUseCase;
     this.listVoicesForBookUseCase = listVoicesForBookUseCase;
+  this.generateBookAudioUseCase = generateBookAudioUseCase;
     this.logger = new Logger('BootstrapService');
   }
 
@@ -336,8 +338,8 @@ export class BootstrapService {
             const id = Number(req.params.id);
             const auth = req?.headers?.authorization;
             const token = (auth || '').replace(/^Bearer\s+/i, '');
-            const { pagina, palabra, progreso, tiempo_escucha, id_estado, audio } = req?.body || {};
-            const result = await this.updateReadingUseCase.execute({ token, id, pagina, palabra, progreso, tiempo_escucha, id_estado, audio });
+            const { pagina, palabra, progreso, tiempo_escucha, id_estado, audio, id_voz, id_playbackrate } = req?.body || {};
+            const result = await this.updateReadingUseCase.execute({ token, id, pagina, palabra, progreso, tiempo_escucha, id_estado, audio, id_voz, id_playbackrate });
             res.status(200).json(result);
           } catch (err) {
             const status = err?.status || 500;
@@ -354,6 +356,37 @@ export class BootstrapService {
               ? tonesParam.split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n))
               : [];
             const result = await this.listVoicesForBookUseCase.execute({ id, tones: toneIds });
+            res.status(200).json(result);
+          } catch (err) {
+            const status = err?.status || 500;
+            res.status(status).json({ statusCode: status, message: err?.message || 'Error', error: String(err) });
+          }
+        });
+
+  // Generar o recuperar audio TTS para un libro y voz
+        app.post('/books/:id/tts', async (req, res) => {
+          try {
+            const id = Number(req.params.id);
+            const { id_voz, id_playbackrate } = req?.body || {};
+            const auth = req?.headers?.authorization;
+            const token = (auth || '').replace(/^Bearer\s+/i, '');
+            const vid = Number(id_voz);
+            if (!Number.isFinite(vid) || vid < 1 || vid > 16) {
+              return res.status(400).json({ statusCode: 400, message: 'Voz no permitida' });
+            }
+            const result = await this.generateBookAudioUseCase.execute({ token, id, id_voz: vid, id_playbackrate: Number(id_playbackrate) || undefined });
+            res.status(200).json(result);
+          } catch (err) {
+            const status = err?.status || 500;
+            res.status(status).json({ statusCode: status, message: err?.message || 'Error', error: String(err) });
+          }
+        });
+
+        // Obtener texto del libro (extraído del PDF)
+        app.get('/books/:id/text', async (req, res) => {
+          try {
+            const id = Number(req.params.id);
+            const result = await this.getBookTextUseCase.execute({ id });
             res.status(200).json(result);
           } catch (err) {
             const status = err?.status || 500;

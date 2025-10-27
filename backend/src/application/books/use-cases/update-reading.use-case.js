@@ -6,7 +6,7 @@ export class UpdateReadingUseCase {
     this.librosUsuariosRepository = librosUsuariosRepository;
   }
 
-  async execute({ token, id, pagina, palabra, progreso, tiempo_escucha, id_estado, audio }) {
+  async execute({ token, id, pagina, palabra, progreso, tiempo_escucha, id_estado, audio, id_voz, id_playbackrate }) {
     if (!token) {
       const err = new Error('Missing token');
       err.status = 401;
@@ -37,8 +37,8 @@ export class UpdateReadingUseCase {
       updated = await this.librosUsuariosRepository.setState(userId, id, id_estado);
     }
     // Update progress fields if provided
-    const fields = { pagina, palabra, progreso, tiempo_escucha, audio };
-    const hasProgressField = [pagina, palabra, progreso, tiempo_escucha, audio].some((v) => v !== undefined);
+  const fields = { pagina, palabra, progreso, tiempo_escucha, audio, id_voz, id_playbackrate };
+  const hasProgressField = [pagina, palabra, progreso, tiempo_escucha, audio, id_voz, id_playbackrate].some((v) => v !== undefined);
     if (hasProgressField) {
       updated = await this.librosUsuariosRepository.updateProgress(userId, id, fields);
     }

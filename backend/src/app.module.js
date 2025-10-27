@@ -25,8 +25,11 @@ import { StartReadingUseCase } from './application/books/use-cases/start-reading
 import { UpdateReadingUseCase } from './application/books/use-cases/update-reading.use-case';
 import { GetBookDetailUseCase } from './application/books/use-cases/get-book-detail.use-case';
 import { ListVoicesForBookUseCase } from './application/books/use-cases/list-voices-for-book.use-case';
+import { GetBookTextUseCase } from './application/books/use-cases/get-book-text.use-case';
 import { VocesRepositoryImpl } from './infrastructure/database/supabase/voces.repository.impl';
 import { TonosRepositoryImpl } from './infrastructure/database/supabase/tonos.repository.impl';
+import { GenerateBookAudioUseCase } from './application/books/use-cases/generate-book-audio.use-case';
+import EdgeTtsService from './infrastructure/tts/providers/edge-tts.service';
 import { GenerosRepositoryImpl } from './infrastructure/database/supabase/generos.repository.impl';
 import { LibrosUsuariosRepositoryImpl } from './infrastructure/database/supabase/libros_usuarios.repository.impl';
 
@@ -62,6 +65,9 @@ import { LibrosUsuariosRepositoryImpl } from './infrastructure/database/supabase
     { provide: UpdateReadingUseCase, useFactory: (repo) => new UpdateReadingUseCase(repo), inject: ['LibrosUsuariosRepository'] },
     { provide: GetBookDetailUseCase, useFactory: (librosRepo, relRepo) => new GetBookDetailUseCase(librosRepo, relRepo), inject: ['LibrosRepository', 'LibrosUsuariosRepository'] },
     { provide: ListVoicesForBookUseCase, useFactory: (librosRepo, vocesRepo) => new ListVoicesForBookUseCase(librosRepo, vocesRepo), inject: ['LibrosRepository', 'VocesRepository'] },
+    { provide: GenerateBookAudioUseCase, useFactory: (librosRepo, vocesRepo, relRepo, supa, tts) => new GenerateBookAudioUseCase(librosRepo, vocesRepo, relRepo, supa, tts), inject: ['LibrosRepository', 'VocesRepository', 'LibrosUsuariosRepository', SupabaseService, EdgeTtsService] },
+    { provide: GetBookTextUseCase, useFactory: (librosRepo, supa) => new GetBookTextUseCase(librosRepo, supa), inject: ['LibrosRepository', SupabaseService] },
+    EdgeTtsService,
   ],
 })
 export class AppModule {}

@@ -35,10 +35,10 @@ describe('Voices per book (e2e)', () => {
     const tb = await supabase.from('tbl_tonos').upsert({ nombre: 'Profundo' }, { onConflict: 'nombre' }).select('*').maybeSingle();
     tonoA = ta.data?.id_tono; tonoB = tb.data?.id_tono;
 
-    // Seed voices
-    const v1 = await supabase.from('tbl_voces').insert({ display_name: 'Lucía', short_name: 'es-CL-Luc', id_idioma: idiomaId }).select('*').maybeSingle();
-    const v2 = await supabase.from('tbl_voces').insert({ display_name: 'Carlos', short_name: 'es-CO-Car', id_idioma: idiomaId }).select('*').maybeSingle();
-    voz1 = v1.data?.id_voz; voz2 = v2.data?.id_voz;
+    // Do NOT edit voices table. Assume voices 1..16 already exist.
+    const q1 = await supabase.from('tbl_voces').select('id_voz').eq('id_voz', 1).maybeSingle();
+    const q2 = await supabase.from('tbl_voces').select('id_voz').eq('id_voz', 2).maybeSingle();
+    voz1 = q1.data?.id_voz; voz2 = q2.data?.id_voz;
 
     if (voz1 && tonoA) await supabase.from('tbl_voces_x_tonos').insert({ id_voz: voz1, id_tono: tonoA });
     if (voz2 && tonoB) await supabase.from('tbl_voces_x_tonos').insert({ id_voz: voz2, id_tono: tonoB });

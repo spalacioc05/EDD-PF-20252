@@ -16,6 +16,8 @@ export class VocesRepositoryImpl {
         .from('tbl_voces')
         .select('id_voz, display_name, short_name, id_idioma, descripcion, id_genero_voz, tbl_voces_x_tonos!inner(id_tono)')
         .eq('id_idioma', idIdioma)
+        .gte('id_voz', 1)
+        .lte('id_voz', 16)
         .in('tbl_voces_x_tonos.id_tono', toneIds);
       if (error) throw new Error(error.message);
       return (data || []).map(({ tbl_voces_x_tonos, ...rest }) => rest);
@@ -23,9 +25,23 @@ export class VocesRepositoryImpl {
     const { data, error } = await this.supabase.admin
       .from('tbl_voces')
       .select('id_voz, display_name, short_name, id_idioma, descripcion, id_genero_voz')
-      .eq('id_idioma', idIdioma);
+      .eq('id_idioma', idIdioma)
+      .gte('id_voz', 1)
+      .lte('id_voz', 16);
     if (error) throw new Error(error.message);
     return data || [];
+  }
+
+  async findById(id_voz) {
+    const { data, error } = await this.supabase.admin
+      .from('tbl_voces')
+      .select('id_voz, display_name, short_name, id_idioma')
+      .eq('id_voz', id_voz)
+      .gte('id_voz', 1)
+      .lte('id_voz', 16)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data || null;
   }
 
   async getIdiomaIdByCode(codigo) {

@@ -71,6 +71,8 @@ export class LibrosUsuariosRepositoryImpl {
     if (typeof fields.progreso === 'number') allowed.progreso = fields.progreso;
     if (Number.isFinite(fields.tiempo_escucha)) allowed.tiempo_escucha = fields.tiempo_escucha;
     if (fields.audio !== undefined) allowed.audio = fields.audio;
+    if (Number.isFinite(fields.id_voz)) allowed.id_voz = fields.id_voz;
+    if (Number.isFinite(fields.id_playbackrate)) allowed.id_playbackrate = fields.id_playbackrate;
     allowed.fecha_ultima_lectura = new Date().toISOString();
     const existing = await this.findByUserAndBook(idUsuario, idLibro);
     if (!existing) return null;

@@ -45,6 +45,7 @@ export default function BookVoices({ bookId, fragment }) {
     return () => { canceled = true; };
   }, [bookId, selectedToneIds]);
 
+
   return (
     <div className="space-y-3">
       {tones.length > 0 && (
@@ -64,12 +65,13 @@ export default function BookVoices({ bookId, fragment }) {
       )}
 
       <BookPlayer
+        bookId={bookId}
         playbackRates={playbackRates}
         voices={voices.map((v, i) => ({ id: v.id_voz ?? i, nombre: v.display_name ?? v.nombre }))}
         defaultRateId={2}
-        defaultVoiceId={voices[0]?.id_voz}
+        defaultVoiceId={(voices && voices.find((v)=> v.id_voz === 1)?.id_voz) || voices[0]?.id_voz}
         defaultProgress={0}
-        fragment={fragment}
+        fragment={""}
       />
     </div>
   );
