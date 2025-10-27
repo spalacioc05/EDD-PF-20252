@@ -22,6 +22,10 @@ export class EdgeTtsService {
   async synthesize({ text, shortName, format = 'audio-24khz-48kbitrate-mono-mp3' }) {
     if (!text || !shortName) throw new Error('Missing text or shortName');
     const disabled = process.env.DISABLE_TTS === '1' || process.env.DISABLE_TTS === 'true' || env.ttsDisabled;
+    if (process.env.DEBUG_TTS) {
+      // eslint-disable-next-line no-console
+      console.log('[EdgeTtsService] disabled?', !!disabled, 'edgeTTS?', !!edgeTTS);
+    }
     if (disabled || !edgeTTS) {
       if (process.env.NODE_ENV === 'test') {
         // In tests, keep a tiny silent file to avoid network

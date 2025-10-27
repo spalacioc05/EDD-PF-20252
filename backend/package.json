@@ -13,7 +13,8 @@
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "analyze:one": "node scripts/analyze-one.js",
-    "tts:gen": "node scripts/generate-audio.js"
+    "tts:gen": "node scripts/generate-audio.js",
+    "tts:gen:py": "python scripts/generate_audio_py.py"
   },
   "dependencies": {
     "@google-cloud/text-to-speech": "^6.3.1",
@@ -28,22 +29,23 @@
     "bull": "^4.16.5",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "edge-tts": "^1.0.1",
     "ffmpeg-static": "^5.2.0",
     "fluent-ffmpeg": "^2.1.3",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "nestjs-form-data": "^1.9.93",
     "pdf-parse": "^2.4.3",
-  "pg": "^8.16.3",
-  "jsonwebtoken": "^9.0.2",
+  "pdfjs-dist": "^4.8.69",
+  "pdf2json": "^2.0.2",
+    "pg": "^8.16.3",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.2",
-    "sharp": "^0.34.4",
-    "pdfjs-dist": "^4.8.69",
-    "edge-tts": "^1.0.1"
+    "sharp": "^0.34.4"
   },
   "devDependencies": {
-    "babel-jest": "30.2.0",
     "@babel/core": "7.28.4",
     "@babel/node": "7.28.0",
     "@babel/plugin-proposal-decorators": "7.28.0",
@@ -52,10 +54,12 @@
     "@babel/register": "7.28.3",
     "@babel/runtime": "7.28.4",
     "@nestjs/testing": "^11.0.1",
+    "babel-jest": "30.2.0",
     "jest": "30.2.0",
     "nodemon": "3.1.10",
     "prettier": "3.6.2",
-    "supertest": "7.1.4"
+    "supertest": "7.1.4",
+    "ts-node": "^10.9.2"
   },
   "jest": {
     "moduleFileExtensions": [

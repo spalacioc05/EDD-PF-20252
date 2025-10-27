@@ -21,7 +21,7 @@ export async function downloadPdfBuffer(supabaseService, archivo) {
   return Buffer.from(arrayBuffer);
 }
 
-export async function extractPdfText(buffer) {
+export async function extractPdfText(buffer, opts = {}) {
   // Try pdf-parse first
   try {
     let pdfParse;
@@ -39,7 +39,8 @@ export async function extractPdfText(buffer) {
   } catch (_) {}
   // Fallback to pdfjs-dist
   try {
-    const pdfjsLib = require('pdfjs-dist');
+    // Use legacy build in Node to avoid missing APIs/warnings
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
     const { getDocument } = pdfjsLib;
     const loadingTask = getDocument({ data: buffer });
     const pdf = await loadingTask.promise;
@@ -51,9 +52,44 @@ export async function extractPdfText(buffer) {
       const strings = content.items?.map((it) => it.str).filter(Boolean) || [];
       text += strings.join(' ') + '\n';
     }
-    return text.trim();
+    const t = text.trim();
+    if (t) return t;
   } catch (e) {
     // Final fallback: empty string
+    // continue to next fallback
+  }
+  // Fallback 3: pdf2json (pure JS) — handles some PDFs where pdfjs textContent is empty
+  try {
+    const PDFParser = require('pdf2json');
+    const pdfParser = new PDFParser();
+    const buf = buffer; // Node Buffer
+    const result = await new Promise((resolve, reject) => {
+      pdfParser.on('pdfParser_dataReady', resolve);
+      pdfParser.on('pdfParser_dataError', (err) => reject(err?.parserError || err));
+      // pdf2json expects a file path or a binary buffer
+      pdfParser.parseBuffer(buf);
+    });
+    const pages = (result?.formImage?.Pages) || [];
+    const chunks = [];
+    for (const p of pages) {
+      const texts = p.Texts || [];
+      for (const t of texts) {
+        // t.R is array of { T: encodedText }
+        for (const r of (t.R || [])) {
+          try {
+            const decoded = decodeURIComponent(r.T || '');
+            if (decoded) chunks.push(decoded);
+          } catch (_) {
+            if (r.T) chunks.push(r.T);
+          }
+        }
+      }
+      chunks.push('\n');
+    }
+    const finalText = chunks.join(' ').replace(/\s+\n/g, '\n').trim();
+    return finalText;
+  } catch (_) {
+    // give up
     return '';
   }
 }
