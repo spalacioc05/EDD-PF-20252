@@ -33,11 +33,12 @@ export default function BookVoices({ bookId, fragment }) {
     (async () => {
       try {
         const api = getApiUrl();
-        const url = new URL(`${api}/books/${bookId}/voices`);
+  const url = new URL(`${api}/books/${bookId}/voices`);
         if (selectedToneIds.length) url.searchParams.set('tones', selectedToneIds.join(','));
         const res = await fetch(url.toString(), { cache: 'no-store' });
-        const data = await res.json().catch(() => ({ voces: [] }));
-        if (!canceled) setVoices(Array.isArray(data.voces) ? data.voces : []);
+  const data = await res.json().catch(() => ({ voices: [] }));
+  const list = Array.isArray(data.voces) ? data.voces : (Array.isArray(data.voices) ? data.voices : []);
+  if (!canceled) setVoices(list);
       } catch {
         if (!canceled) setVoices([]);
       }
@@ -67,7 +68,7 @@ export default function BookVoices({ bookId, fragment }) {
       <BookPlayer
         bookId={bookId}
         playbackRates={playbackRates}
-        voices={voices.map((v, i) => ({ id: v.id_voz ?? i, nombre: v.display_name ?? v.nombre }))}
+        voices={voices.map((v, i) => ({ id: v.id_voz ?? i, id_voz: v.id_voz ?? i, nombre: v.display_name ?? v.nombre }))}
         defaultRateId={2}
         defaultVoiceId={(voices && voices.find((v)=> v.id_voz === 1)?.id_voz) || voices[0]?.id_voz}
         defaultProgress={0}

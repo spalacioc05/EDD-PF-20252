@@ -14,7 +14,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "analyze:one": "node scripts/analyze-one.js",
     "tts:gen": "node scripts/generate-audio.js",
-    "tts:gen:py": "python scripts/generate_audio_py.py"
+    "tts:gen:py": "python scripts/generate_audio_py.py",
+    "tts:ingest": "node scripts/ingest-text-and-generate.js"
   },
   "dependencies": {
     "@google-cloud/text-to-speech": "^6.3.1",

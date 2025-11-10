@@ -90,6 +90,59 @@ export async function extractPdfText(buffer, opts = {}) {
     return finalText;
   } catch (_) {
     // give up
+    // If we reach here and still have no text, attempt OCR if enabled
     return '';
+  }
+}
+
+// OCR fallback: use tesseract.js if conventional extraction yields too few words
+export async function extractPdfTextWithOcr(buffer, opts = {}) {
+  const {
+    minWordsForOcr = 500,
+    ocrMaxPages = parseInt(process.env.OCR_MAX_PAGES || '40', 10),
+    ocrLang = process.env.OCR_LANG || 'spa',
+    forceOcr = false,
+  } = opts;
+  let baseText = await extractPdfText(buffer, opts);
+  const wordCount = (baseText || '').trim().split(/\s+/).filter(Boolean).length;
+  if (!forceOcr && wordCount >= minWordsForOcr) return baseText;
+  // Attempt OCR on each page rendered to PNG via pdfjs-dist
+  try {
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    const { getDocument } = pdfjsLib;
+    const loadingTask = getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
+    const totalPages = pdf.numPages || 0;
+    const pagesToProcess = Math.min(totalPages, ocrMaxPages);
+    const Tesseract = require('tesseract.js');
+    const { createCanvas } = require('canvas');
+    let ocrTextChunks = [];
+    for (let i = 1; i <= pagesToProcess; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2.0 });
+      const canvas = createCanvas(viewport.width, viewport.height);
+      const ctx = canvas.getContext('2d');
+      // Render page
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      // Convert to buffer
+      const imgBuffer = canvas.toBuffer('image/png');
+      const result = await Tesseract.recognize(imgBuffer, ocrLang, {
+        logger: () => {}, // silence
+      });
+      const pageText = (result.data?.text || '').replace(/\s+/g, ' ').trim();
+      if (pageText) ocrTextChunks.push(pageText);
+    }
+    const ocrText = ocrTextChunks.join('\n\n');
+    // Merge if original extraction produced some text
+    if (baseText && baseText.length > 50) {
+      // Avoid duplicating: if OCR text seems subset/superset we choose longer
+      if (ocrText.length > baseText.length * 1.1) {
+        return ocrText;
+      }
+      return baseText.length >= ocrText.length ? baseText : ocrText;
+    }
+    return ocrText || baseText;
+  } catch (e) {
+    return baseText; // fallback to whatever we had
   }
 }

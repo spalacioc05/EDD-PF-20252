@@ -20,6 +20,8 @@ import { UpdateReadingUseCase } from './application/books/use-cases/update-readi
 import { GetBookDetailUseCase } from './application/books/use-cases/get-book-detail.use-case';
 import { ListVoicesForBookUseCase } from './application/books/use-cases/list-voices-for-book.use-case';
 import { GenerateBookAudioUseCase } from './application/books/use-cases/generate-book-audio.use-case';
+import registerBooksRoutes from './presentation/controllers/books.routes';
+import registerProgressRoutes from './presentation/controllers/progress.controller';
 
 @Injectable()
 @Dependencies(SupabaseService, HttpAdapterHost, LoginUseCase, LogoutUseCase, GetMeUseCase, ReactivateUseCase, UpdateProfileUseCase, UploadPhotoUseCase, ListPhotosUseCase, SetPhotoUseCase, AnalyzeBooksUseCase, AnalyzeMissingBooksUseCase, 'LibrosRepository', ListGenresUseCase, ListBooksUseCase, ListUserReadingUseCase, StartReadingUseCase, UpdateReadingUseCase, GetBookDetailUseCase, ListVoicesForBookUseCase, GenerateBookAudioUseCase)
@@ -393,6 +395,15 @@ export class BootstrapService {
             res.status(status).json({ statusCode: status, message: err?.message || 'Error', error: String(err) });
           }
         });
+
+        // Register additional books + progress routes (plain JS, router-style)
+        try {
+          registerBooksRoutes(app, this);
+          registerProgressRoutes(app, this);
+          this.logger.log('Books & progress routes registered');
+        } catch (e) {
+          this.logger.error('Error registering books/progress routes', e);
+        }
 
         this.logger.log('Auth routes registered on HTTP adapter');
       } else {

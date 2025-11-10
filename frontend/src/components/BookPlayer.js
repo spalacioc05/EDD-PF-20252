@@ -15,6 +15,9 @@ export default function BookPlayer({ bookId, playbackRates = [], voices = [], de
   const timer = useRef(null);
   const audioRef = useRef(null);
   const [audioUrl, setAudioUrl] = useState("");
+  const [manifest, setManifest] = useState(null);
+  const [chunkIndex, setChunkIndex] = useState(0);
+  const [resuming, setResuming] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingVoice, setPendingVoice] = useState(null);
   const [generating, setGenerating] = useState(false);
@@ -92,7 +95,7 @@ export default function BookPlayer({ bookId, playbackRates = [], voices = [], de
     };
   }, [bookId, voice, rate, audioUrl, progress, playbackRates]);
 
-  // Solicitar generación/obtención del audio al seleccionar voz
+  // Solicitar generación/obtención del audio en chunks al seleccionar voz
   const handleSelectVoice = async (vid) => {
     setPendingVoice(vid);
     setConfirmOpen(true);
@@ -105,22 +108,31 @@ export default function BookPlayer({ bookId, playbackRates = [], voices = [], de
       setGenerating(true);
       const api = getApiUrl();
       const token = getToken();
-      const found = playbackRates.find((r) => (r.id_playbackrate ?? r.id) === rate);
-      const rateVal = Number(found?.velocidad ?? found?.value ?? 1.0);
-      const res = await fetch(`${api}/books/${bookId}/tts`, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id_voz: pendingVoice, id_playbackrate: rateVal })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.audioUrl) {
-          setAudioUrl(data.audioUrl);
-          setVoice(pendingVoice);
-          // Cargar en audio y reproducir
+      // Primero intenta obtener manifest existente
+      let resp = await fetch(`${api}/books/${bookId}/audio-chunks?voiceId=${pendingVoice}`, { headers: { Authorization: `Bearer ${token}` } });
+      let data = null;
+      if (resp.ok) {
+        data = await resp.json();
+      }
+      if (!data?.manifest) {
+        // Generar si no existe
+        resp = await fetch(`${api}/books/${bookId}/audio-chunks`, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ voiceId: pendingVoice })
+        });
+        data = await resp.json();
+      }
+      if (data?.manifest) {
+        setManifest(data.manifest);
+        setVoice(pendingVoice);
+        setChunkIndex(0);
+        const first = data.manifest.chunks?.[0];
+        if (first?.url) {
+          setAudioUrl(first.url);
           const audio = audioRef.current;
           if (audio) {
-            audio.src = data.audioUrl;
+            audio.src = first.url;
             audio.currentTime = 0;
             try { await audio.play(); setPlaying(true); } catch {}
           }
@@ -132,6 +144,82 @@ export default function BookPlayer({ bookId, playbackRates = [], voices = [], de
       setPendingVoice(null);
     }
   };
+
+  // Autoload manifest and resume when voice changes or on load
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      if (!voice) return;
+      try {
+        setResuming(true);
+        const api = getApiUrl();
+        const token = getToken();
+        const r = await fetch(`${api}/books/${bookId}/audio-chunks?voiceId=${voice}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+        const data = await r.json().catch(()=>null);
+        if (canceled) return;
+        if (data?.manifest) {
+          setManifest(data.manifest);
+          // Intentar reanudar desde progreso guardado
+          const pr = await fetch(`${api}/progress/books/${bookId}`, { headers: { 'x-user-id': localStorage.getItem('loom:user_id') || '0' }, cache: 'no-store' }).then(x=>x.json()).catch(()=>null);
+          let idx = 0;
+          if (pr?.reading?.palabra != null && Array.isArray(data.manifest.chunks)) {
+            const w = Number(pr.reading.palabra);
+            const foundIdx = data.manifest.chunks.findIndex(c => w >= c.startWord && w <= c.endWord);
+            idx = foundIdx >= 0 ? foundIdx : 0;
+          }
+          setChunkIndex(idx);
+          const chunk = data.manifest.chunks?.[idx];
+          if (chunk?.url) {
+            setAudioUrl(chunk.url);
+            const audio = audioRef.current; if (audio) { audio.src = chunk.url; audio.currentTime = 0; }
+          }
+        }
+      } finally {
+        if (!canceled) setResuming(false);
+      }
+    })();
+    return () => { canceled = true; };
+  }, [bookId, voice]);
+
+  // Avanzar a siguiente chunk cuando termina
+  useEffect(() => {
+    const audio = audioRef.current; if (!audio) return;
+    const onEnded = async () => {
+      if (!manifest || !Array.isArray(manifest.chunks)) return;
+      const next = chunkIndex + 1;
+      if (next < manifest.chunks.length) {
+        setChunkIndex(next);
+        const ch = manifest.chunks[next];
+        setAudioUrl(ch.url);
+        audio.src = ch.url; audio.currentTime = 0; try { await audio.play(); setPlaying(true);} catch{}
+        // guardar progreso con palabra inicial del chunk
+        try {
+          const api = getApiUrl();
+          const token = getToken();
+          await fetch(`${api}/progress/books/${bookId}`, { method:'PUT', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify({ palabra: ch.startWord, voiceId: voice }) });
+        } catch {}
+      } else {
+        setPlaying(false);
+      }
+    };
+    audio.addEventListener('ended', onEnded);
+    return () => audio.removeEventListener('ended', onEnded);
+  }, [manifest, chunkIndex, voice, bookId]);
+
+  // Guardado periódico de progreso
+  useEffect(() => {
+    const audio = audioRef.current; if (!audio) return;
+    const interval = setInterval(async () => {
+      try {
+        const api = getApiUrl(); const token = getToken();
+        const dur = audio.duration || 1; const cur = audio.currentTime || 0;
+        const prog = cur / dur;
+        const ch = manifest?.chunks?.[chunkIndex];
+        await fetch(`${api}/progress/books/${bookId}`, { method:'PUT', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify({ progreso: prog, palabra: ch ? ch.startWord : undefined, voiceId: voice }) });
+      } catch {}
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [manifest, chunkIndex, voice, bookId]);
 
   return (
     <div className="card p-4 space-y-4">

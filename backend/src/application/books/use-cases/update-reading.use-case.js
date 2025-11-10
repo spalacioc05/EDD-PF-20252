@@ -37,13 +37,20 @@ export class UpdateReadingUseCase {
       updated = await this.librosUsuariosRepository.setState(userId, id, id_estado);
     }
     // Update progress fields if provided
-  const fields = { pagina, palabra, progreso, tiempo_escucha, audio, id_voz, id_playbackrate };
-  const hasProgressField = [pagina, palabra, progreso, tiempo_escucha, audio, id_voz, id_playbackrate].some((v) => v !== undefined);
+    const fields = { pagina, palabra, progreso, tiempo_escucha, audio, id_voz, id_playbackrate };
+    const hasProgressField = [pagina, palabra, progreso, tiempo_escucha, audio, id_voz, id_playbackrate].some((v) => v !== undefined);
     if (hasProgressField) {
+      // Ensure relation exists if missing
+      if (!updated) {
+        const existing = await this.librosUsuariosRepository.findByUserAndBook(userId, id);
+        if (!existing) {
+          await this.librosUsuariosRepository.startReading(userId, id);
+        }
+      }
       updated = await this.librosUsuariosRepository.updateProgress(userId, id, fields);
     }
 
-    // If no relation existed and only state requested 3, start it
+    // If after all operations no relation, attempt start when explicit state 3
     if (!updated && id_estado === 3) {
       updated = await this.librosUsuariosRepository.startReading(userId, id);
     }

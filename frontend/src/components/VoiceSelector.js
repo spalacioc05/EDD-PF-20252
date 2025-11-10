@@ -16,7 +16,7 @@ export default function VoiceSelector({ voices = [], selectedId, onSelect }) {
               <Volume2 className="h-5 w-5 text-[color:var(--color-accent)]" />
             </div>
             <div>
-              <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>{v.nombre || `Voz ${vid}`}</p>
+              <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>{v.nombre || v.display_name || `Voz ${vid}`}</p>
               {(generoNombre || idiomaCodigo) && (
                 <p className="text-xs text-muted">{[generoNombre, idiomaCodigo].filter(Boolean).join(" · ")}</p>
               )}
